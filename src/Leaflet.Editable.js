@@ -1593,6 +1593,14 @@
             skipMiddleMarkers: true
         },
 
+        _rotate(points, angle) {
+            const angleRad = angle * Math.PI / 180.0;
+            const sh = Math.sin(angleRad), ch = Math.cos(angleRad);
+            // Rotation matrix multiplication
+            return points.map(xy => new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch));
+        },
+
+
         extendBounds: function (e) {
             var index = e.vertex.getIndex(),
                 next = e.vertex.getNext(),
@@ -1601,8 +1609,30 @@
                 opposite = e.vertex.latlngs[oppositeIndex],
                 bounds = new L.LatLngBounds(e.latlng, opposite);
             // Update latlngs by hand to preserve order.
-            previous.latlng.update([e.latlng.lat, opposite.lng]);
-            next.latlng.update([opposite.lat, e.latlng.lng]);
+
+            var angle = this.feature.getRotationAngle();
+
+            if(angle) {
+                var center = this.map.project(this.feature.getCenter());
+                var latLngs = [e.latlng, opposite];
+
+                var points = latLngs.map(latlng => this.map.project(latlng).subtract(center));
+
+                const [eRotated, oRotated] = this._rotate(points, -angle);
+
+                const prevRotated = new L.Point(eRotated.x, oRotated.y);
+                const nextRotated = new L.Point(oRotated.x, eRotated.y);
+
+                const [prevLatLng, nextLatLng] = this._rotate([prevRotated, nextRotated], angle)
+                    .map(xy => this.map.unproject(xy.add(center)));
+
+                previous.latlng.update(prevLatLng);
+                next.latlng.update(nextLatLng);
+
+            } else {
+                previous.latlng.update([e.latlng.lat, opposite.lng]);
+                next.latlng.update([opposite.lat, e.latlng.lng]);
+            }
             this.updateBounds(bounds);
             this.refreshVertexMarkers();
         },
@@ -1751,6 +1781,7 @@
     var EditableMixin = {
 
         createEditor: function (map) {
+            console.log("EditableMixin", this.options);
             map = map || this._map;
             var tools = (this.options.editOptions || {}).editTools || map.editTools;
             if (!tools) throw Error('Unable to detect Editable instance.');
@@ -1891,11 +1922,23 @@
     };
 
     var RectangleMixin = {
+        initialize: function (latlngBounds, options) {
+            L.Polygon.prototype.initialize.call(this, this._boundsToLatLngs(latlngBounds), options);
+            this.setRotationAngle(this.options.rotationAngle);
+        },
 
         getEditorClass: function (tools) {
             return (tools && tools.options.rectangleEditorClass) ? tools.options.rectangleEditorClass : L.Editable.RectangleEditor;
-        }
+        },
 
+        getRotationAngle: function () {
+            return this._mRotationAngle;
+        },
+
+        setRotationAngle: function (angle) {
+            this._mRotationAngle = angle;
+            console.log("Rotation angle:", angle);
+        }
     };
 
     var CircleMixin = {
@@ -1931,6 +1974,7 @@
     if (L.Rectangle) {
         L.Rectangle.include(EditableMixin);
         L.Rectangle.include(RectangleMixin);
+        L.Rectangle.mergeOptions({rotationAngle: 0});
     }
     if (L.Circle) {
         L.Circle.include(EditableMixin);
