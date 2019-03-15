@@ -1583,10 +1583,10 @@
     });
 
     function rotatePoints(points, angle) {
-        const angleRad = angle * Math.PI / 180.0;
-        const sh = Math.sin(angleRad), ch = Math.cos(angleRad);
+        var angleRad = angle * Math.PI / 180.0;
+        var sh = Math.sin(angleRad), ch = Math.cos(angleRad);
         // Rotation matrix multiplication
-        return points.map(xy => new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch));
+        return points.map(function(xy) { return new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch) });
     }
 
     // 🍂namespace Editable; 🍂class RectangleEditor; 🍂aka L.Editable.RectangleEditor
@@ -1609,6 +1609,7 @@
                 oppositeIndex = (index + 2) % 4,
                 opposite = e.vertex.latlngs[oppositeIndex],
                 bounds = new L.LatLngBounds(e.latlng, opposite);
+
             // Update latlngs by hand to preserve order.
 
             var angle = this.feature.getRotationAngle();
@@ -1616,19 +1617,22 @@
             if(angle) {
                 var center = this.map.project(this.feature.getCenter());
                 var latLngs = [e.latlng, opposite];
+                var that = this;
 
-                var points = latLngs.map(latlng => this.map.project(latlng).subtract(center));
+                var points = latLngs.map(function(latlng) { return that.map.project(latlng).subtract(center) });
 
-                const [eRotated, oRotated] = rotatePoints(points, -angle);
+                var rotatedPoints = rotatePoints(points, -angle);
+                var eRotated = rotatedPoints[0];
+                var oRotated = rotatedPoints[1];
 
-                const prevRotated = new L.Point(eRotated.x, oRotated.y);
-                const nextRotated = new L.Point(oRotated.x, eRotated.y);
+                var prevRotated = new L.Point(eRotated.x, oRotated.y);
+                var nextRotated = new L.Point(oRotated.x, eRotated.y);
 
-                const [prevLatLng, nextLatLng] = rotatePoints([prevRotated, nextRotated], angle)
-                    .map(xy => this.map.unproject(xy.add(center)));
+                var unProjectedPoints = rotatePoints([prevRotated, nextRotated], angle)
+                    .map(function (xy) { return that.map.unproject(xy.add(center))});
 
-                previous.latlng.update(prevLatLng);
-                next.latlng.update(nextLatLng);
+                previous.latlng.update(unProjectedPoints[0]);
+                next.latlng.update(unProjectedPoints[1]);
 
             } else {
                 previous.latlng.update([e.latlng.lat, opposite.lng]);
@@ -1937,22 +1941,22 @@
         },
 
         setRotationAngle: function (angle) {
-            const oldAngle = this._mRotationAngle;
+            var oldAngle = this._mRotationAngle;
             this._mRotationAngle = angle;
-            console.log("Rotation angle:", angle);
-            const rotateAngle = angle - oldAngle;
+            var rotateAngle = angle - oldAngle;
             if(rotateAngle) {
                 this._rotate(rotateAngle);
                 this.editor.reset();
             }
         },
 
-        _rotate(angle) {
-            const latLngs = this.getLatLngs()[0];
-            const center = this._map.project(this.getCenter());
-            const points = latLngs.map(latlng => this._map.project(latlng).subtract(center));
-            const rotated = rotatePoints(points, angle);
-            const rotatedLatLngs = rotated.map(point => this._map.unproject(point.add(center)));
+        _rotate: function(angle) {
+            var latLngs = this.getLatLngs()[0];
+            var center = this._map.project(this.getCenter());
+            var that = this;
+            var points = latLngs.map(function (latlng) { return that._map.project(latlng).subtract(center)});
+            var rotated = rotatePoints(points, angle);
+            var rotatedLatLngs = rotated.map(function (point) { return that._map.unproject(point.add(center)) });
             this.setLatLngs([rotatedLatLngs]);
         }
     };
