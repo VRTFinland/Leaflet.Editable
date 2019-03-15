@@ -1777,7 +1777,6 @@
     var EditableMixin = {
 
         createEditor: function (map) {
-            console.log("EditableMixin", this.options);
             map = map || this._map;
             var tools = (this.options.editOptions || {}).editTools || map.editTools;
             if (!tools) throw Error('Unable to detect Editable instance.');
