@@ -1644,10 +1644,7 @@
                 previous.latlng.update([e.latlng.lat, opposite.lng]);
                 next.latlng.update([opposite.lat, e.latlng.lng]);
             }
-//            e.vertex.latlngs[0].__vertex._icon.style.background = "#ff0000";
-//            e.vertex.latlngs[1].__vertex._icon.style.background = "#00ff00";
-//            e.vertex.latlngs[2].__vertex._icon.style.background = "#0000ff";
-//            e.vertex.latlngs[3].__vertex._icon.style.background = "#ffffff";
+
             this.updateBounds(bounds);
             this.refreshVertexMarkers();
         },
