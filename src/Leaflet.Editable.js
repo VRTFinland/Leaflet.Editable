@@ -1927,8 +1927,37 @@
         },
 
         setRotationAngle: function (angle) {
+            const oldAngle = this._mRotationAngle;
             this._mRotationAngle = angle;
             console.log("Rotation angle:", angle);
+            const rotateAngle = angle - oldAngle;
+            if(rotateAngle) {
+                this._rotate(rotateAngle);
+                this.editor.reset();
+            }
+        },
+
+        _rotate(angle) {
+            console.log(this);
+            const center = this.getCenter();
+            const latlngs = this.getLatLngs()[0];
+            //console.log(latlngs, this.map);
+            const headingRad = angle * Math.PI / 180.0;
+            const sh = Math.sin(headingRad), ch = Math.cos(headingRad);
+
+            const centerXy = this._map.project(center);
+            const xys = latlngs.map(latlng => this._map.project(latlng).subtract(centerXy));
+            // Rotation matrix multiplication
+            const rotated = xys.map(xy => new L.point(xy.x*ch - xy.y*sh, xy.x*sh + xy.y*ch));
+            const rotatedLatLngs = rotated.map(point => this._map.unproject(point.add(centerXy)));
+            this.setLatLngs([rotatedLatLngs]);
+
+            //const rotatedLatLngs = latlngs.map(latlng => {
+            //    const l = latlng.subtract(center);
+            //    return new L.LatLng(l.lat * ch - l.lng * sh, l.lat * sh + l.lng * ch).add(center);
+            //    }
+            //);
+
         }
     };
 
