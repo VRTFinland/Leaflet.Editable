@@ -1573,6 +1573,13 @@
 
     });
 
+    function rotatePoints(points, angle) {
+        const angleRad = angle * Math.PI / 180.0;
+        const sh = Math.sin(angleRad), ch = Math.cos(angleRad);
+        // Rotation matrix multiplication
+        return points.map(xy => new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch));
+    }
+
     // 🍂namespace Editable; 🍂class RectangleEditor; 🍂aka L.Editable.RectangleEditor
     // 🍂inherits PathEditor
     L.Editable.RectangleEditor = L.Editable.PathEditor.extend({
@@ -1584,12 +1591,6 @@
             skipMiddleMarkers: true
         },
 
-        _rotate(points, angle) {
-            const angleRad = angle * Math.PI / 180.0;
-            const sh = Math.sin(angleRad), ch = Math.cos(angleRad);
-            // Rotation matrix multiplication
-            return points.map(xy => new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch));
-        },
 
 
         extendBounds: function (e) {
@@ -1609,12 +1610,12 @@
 
                 var points = latLngs.map(latlng => this.map.project(latlng).subtract(center));
 
-                const [eRotated, oRotated] = this._rotate(points, -angle);
+                const [eRotated, oRotated] = rotatePoints(points, -angle);
 
                 const prevRotated = new L.Point(eRotated.x, oRotated.y);
                 const nextRotated = new L.Point(oRotated.x, eRotated.y);
 
-                const [prevLatLng, nextLatLng] = this._rotate([prevRotated, nextRotated], angle)
+                const [prevLatLng, nextLatLng] = rotatePoints([prevRotated, nextRotated], angle)
                     .map(xy => this.map.unproject(xy.add(center)));
 
                 previous.latlng.update(prevLatLng);
@@ -1938,26 +1939,12 @@
         },
 
         _rotate(angle) {
-            console.log(this);
-            const center = this.getCenter();
-            const latlngs = this.getLatLngs()[0];
-            //console.log(latlngs, this.map);
-            const headingRad = angle * Math.PI / 180.0;
-            const sh = Math.sin(headingRad), ch = Math.cos(headingRad);
-
-            const centerXy = this._map.project(center);
-            const xys = latlngs.map(latlng => this._map.project(latlng).subtract(centerXy));
-            // Rotation matrix multiplication
-            const rotated = xys.map(xy => new L.point(xy.x*ch - xy.y*sh, xy.x*sh + xy.y*ch));
-            const rotatedLatLngs = rotated.map(point => this._map.unproject(point.add(centerXy)));
+            const latLngs = this.getLatLngs()[0];
+            const center = this._map.project(this.getCenter());
+            const points = latLngs.map(latlng => this._map.project(latlng).subtract(center));
+            const rotated = rotatePoints(points, angle);
+            const rotatedLatLngs = rotated.map(point => this._map.unproject(point.add(center)));
             this.setLatLngs([rotatedLatLngs]);
-
-            //const rotatedLatLngs = latlngs.map(latlng => {
-            //    const l = latlng.subtract(center);
-            //    return new L.LatLng(l.lat * ch - l.lng * sh, l.lat * sh + l.lng * ch).add(center);
-            //    }
-            //);
-
         }
     };
 
