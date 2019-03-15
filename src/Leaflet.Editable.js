@@ -1603,6 +1603,12 @@
 
             // Update latlngs by hand to preserve order.
 
+            if( index % 2 === 0 ) {
+                var _ = next;
+                next = previous;
+                previous = _;
+            }
+
             var angle = this.feature.getRotationAngle();
 
             if(angle) {
