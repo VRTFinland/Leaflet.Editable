@@ -1603,46 +1603,49 @@
 
 
         extendBounds: function (e) {
+            // We need to update latlngs by hand to preserve order.
+
             var index = e.vertex.getIndex(),
-                next = e.vertex.getNext(),
-                previous = e.vertex.getPrevious(),
                 oppositeIndex = (index + 2) % 4,
                 opposite = e.vertex.latlngs[oppositeIndex],
-                bounds = new L.LatLngBounds(e.latlng, opposite);
+                bounds = new L.LatLngBounds(e.latlng, opposite),
+                editor = this,
+                horizontalAdjacent,
+                verticalAdjacent;
 
-            // Update latlngs by hand to preserve order.
-
-            if( index % 2 === 0 ) {
-                var _ = next;
-                next = previous;
-                previous = _;
+            if(index % 2 === 0) {
+                horizontalAdjacent = e.vertex.getPrevious();
+                verticalAdjacent = e.vertex.getNext();
+            } else {
+                verticalAdjacent = e.vertex.getPrevious();
+                horizontalAdjacent = e.vertex.getNext();
             }
 
-            var angle = this.feature.getRotationAngle();
+            var alpha = this.feature.getRotationAngle();
 
-            if(angle) {
-                var center = this.map.project(this.feature.getCenter());
+            if (alpha) {
+                //  If we have tilted rectangle, we need a little coordinate transformation trick:
+                //  1. rotate rectangle with angle -alpha such that rectangle is in upright position
+                //  2. set coordinates of adjacent points in this coordinate system according to the rectangle
+                //     constraints we need to maintain
+                //  3. rotate rectangle back with angle +alpha
+
+                var centerPoint = this.map.project(this.feature.getCenter());
                 var latLngs = [opposite, e.latlng];
-                var that = this;
+                var points = latLngs.map(function(latlng) {
+                    return editor.map.project(latlng).subtract(centerPoint)
+                });
+                var rotatedPoints = rotatePoints(points, -alpha);
+                var vertPt = new L.Point(rotatedPoints[0].x, rotatedPoints[1].y);
+                var horizPt = new L.Point(rotatedPoints[1].x, rotatedPoints[0].y);
+                var unProjectedPoints = rotatePoints([vertPt, horizPt], alpha)
+                    .map(function (xy) { return editor.map.unproject(xy.add(centerPoint))});
 
-                var points = latLngs.map(function(latlng) { return that.map.project(latlng).subtract(center) });
-
-                var rotatedPoints = rotatePoints(points, -angle);
-                var eRotated = rotatedPoints[0];
-                var oRotated = rotatedPoints[1];
-
-                var prevRotated = new L.Point(eRotated.x, oRotated.y);
-                var nextRotated = new L.Point(oRotated.x, eRotated.y);
-
-                var unProjectedPoints = rotatePoints([prevRotated, nextRotated], angle)
-                    .map(function (xy) { return that.map.unproject(xy.add(center))});
-
-                previous.latlng.update(unProjectedPoints[0]);
-                next.latlng.update(unProjectedPoints[1]);
-
+                verticalAdjacent.latlng.update(unProjectedPoints[0]);
+                horizontalAdjacent.latlng.update(unProjectedPoints[1]);
             } else {
-                previous.latlng.update([e.latlng.lat, opposite.lng]);
-                next.latlng.update([opposite.lat, e.latlng.lng]);
+                verticalAdjacent.latlng.update([e.latlng.lat, opposite.lng]);
+                horizontalAdjacent.latlng.update([opposite.lat, e.latlng.lng]);
             }
 
             this.updateBounds(bounds);
