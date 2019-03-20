@@ -1772,11 +1772,10 @@
             L.Editable.PathEditor.prototype.onDrawingMouseMove.call(this, e);
         },
 
-        onDrag: function (e) {
-            L.Editable.PathEditor.prototype.onDrag.call(this, e);
-            this.feature.dragging.updateLatLng(this._resizeLatLng);
-        }
-
+        onDragEnd: function(e) {
+            L.Editable.PathEditor.prototype.onDragEnd.call(this, e);
+            this.updateResizeLatLng(e);
+        },
     });
 
     // 🍂namespace Editable; 🍂class EditableMixin
