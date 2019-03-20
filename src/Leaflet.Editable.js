@@ -732,15 +732,6 @@
             var icon = this._icon;
             var marker = this.editor.addVertexMarker(e.latlng, this.latlngs);
             this.editor.onNewVertex(marker);
-            /* Hack to workaround browser not firing touchend when element is no more on DOM */
-            var parent = marker._icon.parentNode;
-            parent.removeChild(marker._icon);
-            marker._icon = icon;
-            parent.appendChild(marker._icon);
-            marker._initIcon();
-            marker._initInteraction();
-            marker.setOpacity(1);
-            /* End hack */
             // Transfer ongoing dragging to real marker
             L.Draggable._dragging = false;
             marker.dragging._draggable._onDown(e.originalEvent);
