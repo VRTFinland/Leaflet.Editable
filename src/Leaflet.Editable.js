@@ -1582,6 +1582,13 @@
 
     });
 
+    function rotatePoints(points, angle) {
+        var angleRad = angle * Math.PI / 180.0;
+        var sh = Math.sin(angleRad), ch = Math.cos(angleRad);
+        // Rotation matrix multiplication
+        return points.map(function(xy) { return new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch); });
+    }
+
     // 🍂namespace Editable; 🍂class RectangleEditor; 🍂aka L.Editable.RectangleEditor
     // 🍂inherits PathEditor
     L.Editable.RectangleEditor = L.Editable.PathEditor.extend({
@@ -1593,16 +1600,54 @@
             skipMiddleMarkers: true
         },
 
+
+
         extendBounds: function (e) {
+            // We need to update latlngs by hand to preserve order.
+
             var index = e.vertex.getIndex(),
-                next = e.vertex.getNext(),
-                previous = e.vertex.getPrevious(),
                 oppositeIndex = (index + 2) % 4,
                 opposite = e.vertex.latlngs[oppositeIndex],
-                bounds = new L.LatLngBounds(e.latlng, opposite);
-            // Update latlngs by hand to preserve order.
-            previous.latlng.update([e.latlng.lat, opposite.lng]);
-            next.latlng.update([opposite.lat, e.latlng.lng]);
+                bounds = new L.LatLngBounds(e.latlng, opposite),
+                editor = this,
+                horizontalAdjacent,
+                verticalAdjacent;
+
+            if(index % 2 === 0) {
+                horizontalAdjacent = e.vertex.getPrevious();
+                verticalAdjacent = e.vertex.getNext();
+            } else {
+                verticalAdjacent = e.vertex.getPrevious();
+                horizontalAdjacent = e.vertex.getNext();
+            }
+
+            var alpha = this.feature.getRotationAngle();
+
+            if (alpha) {
+                //  If we have tilted rectangle, we need a little coordinate transformation trick:
+                //  1. rotate rectangle with angle -alpha such that rectangle is in upright position
+                //  2. set coordinates of adjacent points in this coordinate system according to the rectangle
+                //     constraints we need to maintain
+                //  3. rotate rectangle back with angle +alpha
+
+                var centerPoint = this.map.project(this.feature.getCenter());
+                var latLngs = [opposite, e.latlng];
+                var points = latLngs.map(function(latlng) {
+                    return editor.map.project(latlng).subtract(centerPoint);
+                });
+                var rotatedPoints = rotatePoints(points, -alpha);
+                var vertPt = new L.Point(rotatedPoints[0].x, rotatedPoints[1].y);
+                var horizPt = new L.Point(rotatedPoints[1].x, rotatedPoints[0].y);
+                var unProjectedPoints = rotatePoints([vertPt, horizPt], alpha)
+                    .map(function (xy) { return editor.map.unproject(xy.add(centerPoint));});
+
+                verticalAdjacent.latlng.update(unProjectedPoints[0]);
+                horizontalAdjacent.latlng.update(unProjectedPoints[1]);
+            } else {
+                verticalAdjacent.latlng.update([e.latlng.lat, opposite.lng]);
+                horizontalAdjacent.latlng.update([opposite.lat, e.latlng.lng]);
+            }
+
             this.updateBounds(bounds);
             this.refreshVertexMarkers();
         },
@@ -1891,11 +1936,38 @@
     };
 
     var RectangleMixin = {
+        initialize: function (latlngBounds, options) {
+            L.Polygon.prototype.initialize.call(this, this._boundsToLatLngs(latlngBounds), options);
+            this.setRotationAngle(this.options.rotationAngle);
+        },
 
         getEditorClass: function (tools) {
             return (tools && tools.options.rectangleEditorClass) ? tools.options.rectangleEditorClass : L.Editable.RectangleEditor;
-        }
+        },
 
+        getRotationAngle: function () {
+            return this._mRotationAngle;
+        },
+
+        setRotationAngle: function (angle) {
+            var oldAngle = this._mRotationAngle;
+            this._mRotationAngle = angle;
+            var rotateAngle = angle - oldAngle;
+            if(rotateAngle) {
+                this._rotate(rotateAngle);
+                this.editor.reset();
+            }
+        },
+
+        _rotate: function(angle) {
+            var latLngs = this.getLatLngs()[0];
+            var center = this._map.project(this.getCenter());
+            var that = this;
+            var points = latLngs.map(function (latlng) { return that._map.project(latlng).subtract(center);});
+            var rotated = rotatePoints(points, angle);
+            var rotatedLatLngs = rotated.map(function (point) { return that._map.unproject(point.add(center)); });
+            this.setLatLngs([rotatedLatLngs]);
+        }
     };
 
     var CircleMixin = {
@@ -1931,6 +2003,7 @@
     if (L.Rectangle) {
         L.Rectangle.include(EditableMixin);
         L.Rectangle.include(RectangleMixin);
+        L.Rectangle.mergeOptions({rotationAngle: 0});
     }
     if (L.Circle) {
         L.Circle.include(EditableMixin);
