@@ -1739,7 +1739,7 @@
         onDragEnd: function(e) {
             L.Editable.PathEditor.prototype.onDragEnd.call(this, e);
             this.updateResizeLatLng(e);
-        },
+        }
     });
 
     // 🍂namespace Editable; 🍂class EditableMixin
