@@ -1586,7 +1586,7 @@
         var angleRad = angle * Math.PI / 180.0;
         var sh = Math.sin(angleRad), ch = Math.cos(angleRad);
         // Rotation matrix multiplication
-        return points.map(function(xy) { return new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch) });
+        return points.map(function(xy) { return new L.point(xy.x * ch - xy.y * sh, xy.x * sh + xy.y * ch); });
     }
 
     // 🍂namespace Editable; 🍂class RectangleEditor; 🍂aka L.Editable.RectangleEditor
