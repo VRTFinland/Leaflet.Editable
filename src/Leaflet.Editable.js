@@ -1639,7 +1639,7 @@
                 var vertPt = new L.Point(rotatedPoints[0].x, rotatedPoints[1].y);
                 var horizPt = new L.Point(rotatedPoints[1].x, rotatedPoints[0].y);
                 var unProjectedPoints = rotatePoints([vertPt, horizPt], alpha)
-                    .map(function (xy) { return editor.map.unproject(xy.add(centerPoint))});
+                    .map(function (xy) { return editor.map.unproject(xy.add(centerPoint));});
 
                 verticalAdjacent.latlng.update(unProjectedPoints[0]);
                 horizontalAdjacent.latlng.update(unProjectedPoints[1]);
