@@ -1963,7 +1963,7 @@
             var latLngs = this.getLatLngs()[0];
             var center = this._map.project(this.getCenter());
             var that = this;
-            var points = latLngs.map(function (latlng) { return that._map.project(latlng).subtract(center)});
+            var points = latLngs.map(function (latlng) { return that._map.project(latlng).subtract(center);});
             var rotated = rotatePoints(points, angle);
             var rotatedLatLngs = rotated.map(function (point) { return that._map.unproject(point.add(center)) });
             this.setLatLngs([rotatedLatLngs]);
