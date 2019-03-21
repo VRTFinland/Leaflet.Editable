@@ -1633,7 +1633,7 @@
                 var centerPoint = this.map.project(this.feature.getCenter());
                 var latLngs = [opposite, e.latlng];
                 var points = latLngs.map(function(latlng) {
-                    return editor.map.project(latlng).subtract(centerPoint)
+                    return editor.map.project(latlng).subtract(centerPoint);
                 });
                 var rotatedPoints = rotatePoints(points, -alpha);
                 var vertPt = new L.Point(rotatedPoints[0].x, rotatedPoints[1].y);
